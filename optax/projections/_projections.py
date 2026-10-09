@@ -153,7 +153,9 @@ def projection_simplex(tree: Any, scale: jax.typing.ArrayLike = 1) -> Any:
   .. versionadded:: 0.2.3
   """
   values, unravel_fn = flatten_util.ravel_pytree(tree)
-  new_values = scale * _projection_unit_simplex(values / scale)
+  # A zero-radius simplex is the singleton zero vector.
+  safe_scale = jnp.where(scale == 0, 1, scale)
+  new_values = scale * _projection_unit_simplex(values / safe_scale)
   return unravel_fn(jnp.asarray(new_values))
 
 
@@ -214,7 +216,7 @@ def projection_l1_ball(tree: Any, scale: jax.typing.ArrayLike = 1) -> Any:
   """
   l1_norm = optax.tree.norm(tree, ord=1)
   return jax.lax.cond(
-      l1_norm <= scale,
+      (l1_norm <= scale) & (scale != 0),
       lambda tree: tree,
       lambda tree: projection_l1_sphere(tree, scale),
       operand=tree,

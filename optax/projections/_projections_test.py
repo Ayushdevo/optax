@@ -177,6 +177,31 @@ class ProjectionsTest(parameterized.TestCase):
       jvp = jax.jvp(proj.projection_simplex, (x,), (v,))[1]
       np.testing.assert_array_almost_equal(jvp, jnp.dot(jac_true, v))
 
+  @parameterized.product(
+      projection=(
+          proj.projection_simplex,
+          proj.projection_l1_sphere,
+          proj.projection_l1_ball,
+      ),
+      jit=(False, True),
+      zero_input=(False, True),
+  )
+  def test_zero_radius_simplex_and_l1(self, projection, jit, zero_input):
+    x = jnp.zeros(3) if zero_input else jnp.array([1.0, -2.0, 3.0])
+    fn = jax.jit(projection) if jit else projection
+    scale = jnp.asarray(0.0)
+    np.testing.assert_array_equal(fn(x, scale), jnp.zeros_like(x))
+    np.testing.assert_array_equal(
+        jax.jacrev(fn)(x, scale), jnp.zeros((3, 3))
+    )
+    np.testing.assert_array_equal(
+        jax.jacfwd(fn)(x, scale), jnp.zeros((3, 3))
+    )
+    tree = {'w': x, 'b': jnp.asarray(0.5)}
+    test_utils.assert_trees_all_equal(
+        fn(tree, scale), jax.tree.map(jnp.zeros_like, tree)
+    )
+
   @parameterized.parameters(1.0, 0.8)
   def test_projection_simplex_vmap(self, scale):
     rng = np.random.RandomState(0)
