@@ -307,11 +307,14 @@ def projection_vector(x: Any, a: Any) -> Any:
   Args:
     x: tree to project.
     a: tree onto which to project. Must have the same structure as ``x``.
+      An all-zero direction projects to zero.
 
   Returns:
     tree with the same structure as ``x``.
   """
-  scalar = optax.tree.vdot(x, a) / optax.tree.vdot(a, a)
+  squared_norm = optax.tree.vdot(a, a)
+  safe_squared_norm = jnp.where(squared_norm == 0, 1, squared_norm)
+  scalar = optax.tree.vdot(x, a) / safe_squared_norm
   return optax.tree.scale(scalar, a)
 
 

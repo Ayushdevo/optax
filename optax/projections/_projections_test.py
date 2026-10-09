@@ -36,6 +36,18 @@ def projection_simplex_jacobian(projection):
 
 class ProjectionsTest(parameterized.TestCase):
 
+  @parameterized.product(jit=(False, True), zero_input=(False, True))
+  def test_projection_vector_zero_direction(self, jit, zero_input):
+    x = jnp.zeros(3) if zero_input else jnp.array([1.0, -2.0, 3.0])
+    a = jnp.zeros_like(x)
+    fn = jax.jit(proj.projection_vector) if jit else proj.projection_vector
+    np.testing.assert_array_equal(fn(x, a), jnp.zeros_like(x))
+    np.testing.assert_array_equal(jax.jacrev(fn)(x, a), jnp.zeros((3, 3)))
+    np.testing.assert_array_equal(jax.jacfwd(fn)(x, a), jnp.zeros((3, 3)))
+    tree_x = {'w': x, 'b': jnp.asarray(0.5)}
+    tree_a = jax.tree.map(jnp.zeros_like, tree_x)
+    test_utils.assert_trees_all_equal(fn(tree_x, tree_a), tree_a)
+
   def setUp(self):
     super().setUp()
     array_1d = jnp.array([0.5, 2.1, -3.5])
