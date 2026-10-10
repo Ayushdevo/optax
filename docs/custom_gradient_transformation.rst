@@ -137,5 +137,21 @@ parameter pytrees. An update step should return a new state instead of
 mutating the old one, which also makes the transformation suitable for
 functional JAX training loops.
 
+Nested pytree support
+---------------------
+
+A transformation should preserve every leaf, including nested dictionaries.
+
+.. code-block:: python
+
+   nested = {
+       "encoder": {"weight": jnp.array([2.0, -2.0])},
+       "bias": jnp.array([0.2]),
+   }
+   tx = clip_elements(0.5)
+   clipped, _ = tx.update(nested, tx.init(nested))
+   assert jnp.allclose(clipped["encoder"]["weight"], [0.5, -0.5])
+   assert jnp.allclose(clipped["bias"], [0.2])
+
 See also :doc:`api/transformations` for the built-in building blocks and
 :doc:`api/combining_optimizers` for composition utilities.
