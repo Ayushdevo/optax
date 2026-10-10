@@ -83,5 +83,59 @@ For transformations that accumulate statistics (such as momentum), replace
 on each call. `params` is optional because some transformations need only
 the gradients, while others also depend on current parameter values.
 
+A stateful transformation
+-------------------------
+
+A stateful transformation can retain information from earlier steps. The
+example below maintains an exponential moving average of gradients and returns
+that running average as the update. It demonstrates how the state is carried
+between calls; for production momentum, prefer :func:`optax.trace`.
+
+.. code-block:: python
+
+   from typing import NamedTuple
+
+   class MovingAverageState(NamedTuple):
+       average: dict
+
+   def running_average(decay: float) -> optax.GradientTransformation:
+       if not 0 <= decay < 1:
+           raise ValueError("decay must be in [0, 1)")
+
+       def init_fn(params):
+           return MovingAverageState(
+               average=jax.tree.map(jnp.zeros_like, params)
+           )
+
+       def update_fn(updates, state, params=None):
+           del params
+           average = jax.tree.map(
+               lambda previous, gradient: (
+                   decay * previous + (1 - decay) * gradient
+               ),
+               state.average,
+               updates,
+           )
+           return average, MovingAverageState(average=average)
+
+       return optax.GradientTransformation(init_fn, update_fn)
+
+   tx = running_average(0.5)
+   state = tx.init({"weight": jnp.array([0.0])})
+   first, state = tx.update(
+       {"weight": jnp.array([2.0])}, state
+   )
+   second, state = tx.update(
+       {"weight": jnp.array([4.0])}, state
+   )
+
+   assert jnp.allclose(first["weight"], jnp.array([1.0]))
+   assert jnp.allclose(second["weight"], jnp.array([2.5]))
+
+Initializing state with `jax.tree.map` lets the example work with nested
+parameter pytrees. An update step should return a new state instead of
+mutating the old one, which also makes the transformation suitable for
+functional JAX training loops.
+
 See also :doc:`api/transformations` for the built-in building blocks and
 :doc:`api/combining_optimizers` for composition utilities.
