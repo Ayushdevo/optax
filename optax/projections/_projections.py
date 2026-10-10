@@ -311,7 +311,11 @@ def projection_vector(x: Any, a: Any) -> Any:
   Returns:
     tree with the same structure as ``x``.
   """
-  scalar = optax.tree.vdot(x, a) / optax.tree.vdot(a, a)
+  scalar = optax.tree.vdot(x, a) / jnp.where(
+      optax.tree.vdot(a, a) > 0,
+      optax.tree.vdot(a, a),
+      1.0,
+  )
   return optax.tree.scale(scalar, a)
 
 
@@ -336,7 +340,11 @@ def projection_hyperplane(x: Any, a: Any, b: jax.typing.ArrayLike) -> Any:
     tree with the same structure as ``x``.
   """
   # pyrefly: ignore[unsupported-operation]
-  scalar = (b - optax.tree.vdot(x, a)) / optax.tree.vdot(a, a)
+  scalar = (b - optax.tree.vdot(x, a)) / jnp.where(
+      optax.tree.vdot(a, a) > 0,
+      optax.tree.vdot(a, a),
+      1.0,
+  )
   return optax.tree.add_scale(x, scalar, a)
 
 
@@ -361,6 +369,10 @@ def projection_halfspace(x: Any, a: Any, b: jax.typing.ArrayLike) -> Any:
     tree with the same structure as ``x``.
   """
   # pyrefly: ignore[unsupported-operation]
-  scalar = (b - optax.tree.vdot(x, a)) / optax.tree.vdot(a, a)
+  scalar = (b - optax.tree.vdot(x, a)) / jnp.where(
+      optax.tree.vdot(a, a) > 0,
+      optax.tree.vdot(a, a),
+      1.0,
+  )
   scalar = jnp.clip(scalar, max=0)
   return optax.tree.add_scale(x, scalar, a)
