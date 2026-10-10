@@ -197,5 +197,28 @@ compatible pytree structures and array shapes.
    )
    assert jnp.allclose(clipped["weight"], [0.5, -0.5])
 
+Transformation order
+--------------------
+
+Changing the order in a chain can change the result. Clipping before scaling
+is not generally equivalent to clipping afterward.
+
+.. code-block:: python
+
+   params = {"weight": jnp.array([0.0])}
+   gradients = {"weight": jnp.array([4.0])}
+
+   clip_then_scale = optax.chain(clip_elements(0.5), optax.scale(2))
+   scale_then_clip = optax.chain(optax.scale(2), clip_elements(0.5))
+
+   first, _ = clip_then_scale.update(
+       gradients, clip_then_scale.init(params)
+   )
+   second, _ = scale_then_clip.update(
+       gradients, scale_then_clip.init(params)
+   )
+   assert jnp.allclose(first["weight"], [1.0])
+   assert jnp.allclose(second["weight"], [0.5])
+
 See also :doc:`api/transformations` for the built-in building blocks and
 :doc:`api/combining_optimizers` for composition utilities.
