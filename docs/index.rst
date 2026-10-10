@@ -32,7 +32,7 @@ The latest release of Optax can be installed from
 You may also install directly from GitHub, using the following command. This
 can be used to obtain the most recent version of Optax::
 
-   pip install git+git://github.com/google-deepmind/optax.git
+   pip install git+https://github.com/google-deepmind/optax.git
 
 Note that Optax is built on top of JAX.
 See `here <https://github.com/jax-ml/jax?tab=readme-ov-file#installation>`_
