@@ -271,5 +271,41 @@ class ProjectionsTest(parameterized.TestCase):
     assert optax.tree.allclose(y_actual, y_expected)
 
 
+  @parameterized.named_parameters(
+      ('vector', proj.projection_vector, (0.0, 0.0)),
+      ('hyperplane', lambda x, a: proj.projection_hyperplane(x, a, 0.0),
+       (1.0, -2.0)),
+      ('halfspace', lambda x, a: proj.projection_halfspace(x, a, 1.0),
+       (1.0, -2.0)),
+  )
+  def test_zero_normal_projection_is_finite(self, projection, expected):
+    x = jnp.array([1.0, -2.0])
+    zero_normal = jnp.zeros_like(x)
+    for compute in (projection, jax.jit(projection)):
+      actual = compute(x, zero_normal)
+      np.testing.assert_allclose(actual, jnp.asarray(expected))
+      self.assertTrue(bool(jnp.all(jnp.isfinite(actual))))
+
+      jacobian = jax.jacfwd(lambda y: compute(y, zero_normal))(x)
+      self.assertTrue(bool(jnp.all(jnp.isfinite(jacobian))))
+
+  def test_zero_normal_projection_jacobians(self):
+    x = jnp.array([1.0, -2.0])
+    a = jnp.zeros_like(x)
+
+    vector_jacobian = jax.jacfwd(
+        lambda y: proj.projection_vector(y, a)
+    )(x)
+    np.testing.assert_allclose(vector_jacobian, jnp.zeros((2, 2)))
+
+    for projection in (
+        lambda y: proj.projection_hyperplane(y, a, 0.0),
+        lambda y: proj.projection_halfspace(y, a, 1.0),
+    ):
+      np.testing.assert_allclose(
+          jax.jacfwd(projection)(x), jnp.eye(2)
+      )
+
+
 if __name__ == '__main__':
   absltest.main()
