@@ -180,5 +180,22 @@ currently frozen parameters.
    result, _ = tx.update(zeros, tx.init(zeros))
    assert jnp.array_equal(result["frozen"], zeros["frozen"])
 
+JIT compilation
+---------------
+
+The transformation update can be JIT-compiled as long as its arguments have
+compatible pytree structures and array shapes.
+
+.. code-block:: python
+
+   tx = clip_elements(0.5)
+   params = {"weight": jnp.array([1.0, -1.0])}
+   state = tx.init(params)
+   compiled_update = jax.jit(tx.update)
+   clipped, state = compiled_update(
+       {"weight": jnp.array([2.0, -2.0])}, state, params
+   )
+   assert jnp.allclose(clipped["weight"], [0.5, -0.5])
+
 See also :doc:`api/transformations` for the built-in building blocks and
 :doc:`api/combining_optimizers` for composition utilities.
