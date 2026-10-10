@@ -255,5 +255,22 @@ This is also useful as a control case for checking the stateful implementation.
    )
    assert jnp.allclose(current["weight"], [-3.0])
 
+Parameter structure
+-------------------
+
+Gradient transformations normally receive pytrees with the same structure as
+the initialized parameters. Check that structure before applying updates
+when writing custom loops that may dynamically freeze or replace parameters.
+
+.. code-block:: python
+
+   params = {"dense": {"weight": jnp.zeros((2, 3))}}
+   gradients = {"dense": {"weight": jnp.ones((2, 3))}}
+   assert jax.tree.structure(params) == jax.tree.structure(gradients)
+
+   tx = clip_elements(0.5)
+   clipped, _ = tx.update(gradients, tx.init(params))
+   assert clipped["dense"]["weight"].shape == (2, 3)
+
 See also :doc:`api/transformations` for the built-in building blocks and
 :doc:`api/combining_optimizers` for composition utilities.
