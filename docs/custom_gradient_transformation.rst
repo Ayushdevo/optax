@@ -167,5 +167,18 @@ without allocating any state or changing the tree structure.
    assert result == {}
    assert isinstance(state, optax.EmptyState)
 
+Zero gradients
+--------------
+
+Clipping should preserve zero entries exactly, including leaves that represent
+currently frozen parameters.
+
+.. code-block:: python
+
+   tx = clip_elements(0.5)
+   zeros = {"frozen": jnp.zeros((2, 3))}
+   result, _ = tx.update(zeros, tx.init(zeros))
+   assert jnp.array_equal(result["frozen"], zeros["frozen"])
+
 See also :doc:`api/transformations` for the built-in building blocks and
 :doc:`api/combining_optimizers` for composition utilities.
