@@ -290,5 +290,24 @@ step turns a stateful transformation into an unintended one-step operation.
 
    assert jnp.allclose(jnp.array(history), [1.0, 2.5, 5.25])
 
+Full optimizer step
+-------------------
+
+In a training step, compute gradients, transform them, and use
+:func:`optax.apply_updates` to produce new parameters.
+
+.. code-block:: python
+
+   def squared_error(params):
+       return jnp.sum((params["weight"] - 3.0) ** 2)
+
+   tx = optax.chain(clip_elements(0.5), optax.scale(-0.1))
+   params = {"weight": jnp.array([0.0])}
+   state = tx.init(params)
+   gradients = jax.grad(squared_error)(params)
+   updates, state = tx.update(gradients, state, params)
+   new_params = optax.apply_updates(params, updates)
+   assert jnp.allclose(new_params["weight"], [0.05])
+
 See also :doc:`api/transformations` for the built-in building blocks and
 :doc:`api/combining_optimizers` for composition utilities.
