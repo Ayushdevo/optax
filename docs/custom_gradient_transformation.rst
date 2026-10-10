@@ -153,5 +153,19 @@ A transformation should preserve every leaf, including nested dictionaries.
    assert jnp.allclose(clipped["encoder"]["weight"], [0.5, -0.5])
    assert jnp.allclose(clipped["bias"], [0.2])
 
+Empty pytrees
+-------------
+
+For a stateless, elementwise transformation, an empty pytree can be processed
+without allocating any state or changing the tree structure.
+
+.. code-block:: python
+
+   empty = {}
+   tx = clip_elements(0.5)
+   result, state = tx.update(empty, tx.init(empty))
+   assert result == {}
+   assert isinstance(state, optax.EmptyState)
+
 See also :doc:`api/transformations` for the built-in building blocks and
 :doc:`api/combining_optimizers` for composition utilities.
