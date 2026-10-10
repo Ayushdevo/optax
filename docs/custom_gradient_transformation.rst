@@ -272,5 +272,23 @@ when writing custom loops that may dynamically freeze or replace parameters.
    clipped, _ = tx.update(gradients, tx.init(params))
    assert clipped["dense"]["weight"].shape == (2, 3)
 
+Threading state through a training loop
+---------------------------------------
+
+Always use the new state from `update`. Reusing the initial state on every
+step turns a stateful transformation into an unintended one-step operation.
+
+.. code-block:: python
+
+   tx = running_average(0.5)
+   state = tx.init({"weight": jnp.array([0.0])})
+   history = []
+   for value in (2.0, 4.0, 8.0):
+       updates = {"weight": jnp.array([value])}
+       transformed, state = tx.update(updates, state)
+       history.append(float(transformed["weight"][0]))
+
+   assert jnp.allclose(jnp.array(history), [1.0, 2.5, 5.25])
+
 See also :doc:`api/transformations` for the built-in building blocks and
 :doc:`api/combining_optimizers` for composition utilities.
