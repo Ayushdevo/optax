@@ -220,5 +220,23 @@ is not generally equivalent to clipping afterward.
    assert jnp.allclose(first["weight"], [1.0])
    assert jnp.allclose(second["weight"], [0.5])
 
+Resetting state
+---------------
+
+Calling `init` again starts a fresh transformation history. This matters when
+restarting training or intentionally discarding accumulated statistics.
+
+.. code-block:: python
+
+   tx = running_average(0.5)
+   params = {"weight": jnp.array([0.0])}
+   gradient = {"weight": jnp.array([2.0])}
+   state = tx.init(params)
+   _, state = tx.update(gradient, state)
+   next_value, _ = tx.update(gradient, state)
+   reset_value, _ = tx.update(gradient, tx.init(params))
+   assert jnp.allclose(next_value["weight"], [1.5])
+   assert jnp.allclose(reset_value["weight"], [1.0])
+
 See also :doc:`api/transformations` for the built-in building blocks and
 :doc:`api/combining_optimizers` for composition utilities.
