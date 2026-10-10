@@ -44,6 +44,8 @@ for instructions on installing JAX.
 
    getting_started
 
+   custom_gradient_transformation
+
    gallery
 
    development
