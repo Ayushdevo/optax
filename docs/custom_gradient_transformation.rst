@@ -238,5 +238,22 @@ restarting training or intentionally discarding accumulated statistics.
    assert jnp.allclose(next_value["weight"], [1.5])
    assert jnp.allclose(reset_value["weight"], [1.0])
 
+Decay boundary
+--------------
+
+With zero decay, the running-average example returns the latest gradient.
+This is also useful as a control case for checking the stateful implementation.
+
+.. code-block:: python
+
+   tx = running_average(0.0)
+   params = {"weight": jnp.array([0.0])}
+   state = tx.init(params)
+   _, state = tx.update({"weight": jnp.array([2.0])}, state)
+   current, state = tx.update(
+       {"weight": jnp.array([-3.0])}, state
+   )
+   assert jnp.allclose(current["weight"], [-3.0])
+
 See also :doc:`api/transformations` for the built-in building blocks and
 :doc:`api/combining_optimizers` for composition utilities.
