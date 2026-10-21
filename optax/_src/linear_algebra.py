@@ -124,10 +124,10 @@ def power_iteration(
       v0 = jax.random.uniform(
           key,
           shape=matrix.shape[-1:],  # pyrefly: ignore[missing-attribute]
-          dtype=matrix.dtype,  # pyrefly: ignore[missing-attribute]
+          dtype=jnp.real(matrix).dtype,
           minval=-1.0,
           maxval=1.0,
-      )
+      ).astype(jnp.result_type(matrix))
 
   v0 = _normalize_tree(v0)
 

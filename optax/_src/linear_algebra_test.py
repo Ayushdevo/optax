@@ -26,6 +26,7 @@ from jax import random
 import jax.numpy as jnp
 import numpy as np
 from optax._src import linear_algebra
+from optax._src import utils
 import optax.tree
 import scipy.stats
 
@@ -55,6 +56,19 @@ class LinearAlgebraTest(parameterized.TestCase):
     np.testing.assert_allclose(value, 0.0)
     np.testing.assert_allclose(jnp.linalg.norm(vector), 1.0, rtol=1e-6)
     np.testing.assert_allclose(matrix @ vector, value * vector)
+
+  @parameterized.parameters(jnp.complex64, jnp.complex128)
+  def test_power_iteration_complex_default_initialization(self, dtype):
+    with utils.x64_precision():
+      matrix = jnp.diag(jnp.array([3j, 1j], dtype=dtype))
+      for solve in (
+          linear_algebra.power_iteration,
+          jax.jit(linear_algebra.power_iteration),
+      ):
+        value, vector = solve(matrix)
+        np.testing.assert_allclose(value, 3j, rtol=1e-5)
+        np.testing.assert_allclose(matrix @ vector, value * vector, atol=1e-5)
+        self.assertEqual(vector.dtype, dtype)
 
   def test_global_norm(self):
     flat_updates = jnp.array([2.0, 4.0, 3.0, 5.0], dtype=jnp.float32)
