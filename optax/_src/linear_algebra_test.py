@@ -45,6 +45,17 @@ class MLP(nn.Module):
 
 class LinearAlgebraTest(parameterized.TestCase):
 
+  @parameterized.product(implicit=[False, True], compiled=[False, True])
+  def test_power_iteration_zero_operator(self, implicit, compiled):
+    matrix = jnp.zeros((3, 3))
+    initial = jnp.array([1.0, -2.0, 3.0])
+    operator = (lambda x: matrix @ x) if implicit else matrix
+    solve = lambda: linear_algebra.power_iteration(operator, v0=initial)
+    value, vector = (jax.jit(solve) if compiled else solve)()
+    np.testing.assert_allclose(value, 0.0)
+    np.testing.assert_allclose(jnp.linalg.norm(vector), 1.0, rtol=1e-6)
+    np.testing.assert_allclose(matrix @ vector, value * vector)
+
   def test_global_norm(self):
     flat_updates = jnp.array([2.0, 4.0, 3.0, 5.0], dtype=jnp.float32)
     nested_updates = {

@@ -54,7 +54,7 @@ def _power_iteration_cond_fun(error_tolerance, num_iters, loop_vars):
       unnormalized_eigvec, optax.tree.scale(eig, normalized_eigvec)
   )
   residual_norm = optax.tree.norm(residual)
-  converged = jnp.abs(residual_norm / eig) < error_tolerance
+  converged = residual_norm <= error_tolerance * jnp.abs(eig)
   return ~converged & (iter_num < num_iters)
 
 
@@ -144,11 +144,11 @@ def power_iteration(
     eig = optax.tree.vdot(eigvec, z)
     return eigvec, z, eig, iter_num + 1
 
-  init_vars = (v0, mvp(v0), jnp.asarray(0.0), jnp.asarray(0))
-  _, unormalized_eigenvector, dominant_eigenvalue, _ = jax.lax.while_loop(
+  z0 = mvp(v0)
+  init_vars = (v0, z0, optax.tree.vdot(v0, z0), jnp.asarray(0))
+  normalized_eigenvector, _, dominant_eigenvalue, _ = jax.lax.while_loop(
       cond_fun, _body_fun, init_vars
   )
-  normalized_eigenvector = _normalize_tree(unormalized_eigenvector)
   return dominant_eigenvalue, normalized_eigenvector
 
 
