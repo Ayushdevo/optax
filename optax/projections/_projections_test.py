@@ -36,6 +36,31 @@ def projection_simplex_jacobian(projection):
 
 class ProjectionsTest(parameterized.TestCase):
 
+  @parameterized.product(
+      projection=(
+          proj.projection_simplex,
+          proj.projection_l1_sphere,
+          proj.projection_l1_ball,
+          proj.projection_l2_sphere,
+      ),
+      zero_input=(False, True),
+      compiled=(False, True),
+  )
+  def test_zero_radius_singleton(self, projection, zero_input, compiled):
+    x = jnp.zeros(3) if zero_input else jnp.array([1., -2., 3.])
+    fn = jax.jit(projection) if compiled else projection
+    np.testing.assert_array_equal(fn(x, jnp.array(0.)), jnp.zeros_like(x))
+    np.testing.assert_array_equal(
+        jax.jacfwd(lambda x: fn(x, jnp.array(0.)))(x), jnp.zeros((3, 3))
+    )
+
+  def test_zero_radius_nested_simplex(self):
+    x = {'a': jnp.array([2., -1.]), 'b': (jnp.array(3.),)}
+    for projection in (proj.projection_simplex, proj.projection_l2_sphere):
+      test_utils.assert_trees_all_equal(
+          jax.jit(projection)(x, jnp.array(0.)), optax.tree.zeros_like(x)
+      )
+
   def setUp(self):
     super().setUp()
     array_1d = jnp.array([0.5, 2.1, -3.5])
