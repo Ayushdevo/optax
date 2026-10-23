@@ -254,6 +254,32 @@ class ProjectionsTest(parameterized.TestCase):
     y_expected = (7 / 25, 26 / 25)
     assert optax.tree.allclose(y_actual, y_expected)
 
+  @parameterized.product(compiled=(False, True), nested=(False, True))
+  def test_projection_hyperplane_complex(self, compiled, nested):
+    a = jnp.array([1 + 2j, 3 - 1j, -2 + 1j])
+    x = jnp.array([2 - 1j, -1 + 3j, 4 + 2j])
+    b = jnp.array(2 + 3j)
+    # Solve the affine constraint independently with NumPy least squares.
+    row = np.asarray(a).conj()[None, :]
+    correction = np.linalg.lstsq(
+        row, np.asarray(b - jnp.vdot(a, x))[None], rcond=None
+    )[0]
+    expected = np.asarray(x) + correction
+    if nested:
+      x = {'first': x[:1], 'rest': (x[1:],)}
+      a = {'first': a[:1], 'rest': (a[1:],)}
+      expected = {'first': expected[:1], 'rest': (expected[1:],)}
+    fn = (
+        jax.jit(proj.projection_hyperplane)
+        if compiled else proj.projection_hyperplane
+    )
+    projected = fn(x, a, b)
+    test_utils.assert_trees_all_close(projected, expected, atol=1e-6)
+    np.testing.assert_allclose(optax.tree.vdot(a, projected), b, atol=2e-6)
+    test_utils.assert_trees_all_close(
+        fn(projected, a, b), projected, atol=1e-6
+    )
+
   def test_projection_halfspace_1(self):
     x = (1.0, 2.0)
     a = (3.0, 4.0)

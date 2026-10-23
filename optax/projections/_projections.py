@@ -336,7 +336,7 @@ def projection_hyperplane(x: Any, a: Any, b: jax.typing.ArrayLike) -> Any:
     tree with the same structure as ``x``.
   """
   # pyrefly: ignore[unsupported-operation]
-  scalar = (b - optax.tree.vdot(x, a)) / optax.tree.vdot(a, a)
+  scalar = (b - optax.tree.vdot(a, x)) / optax.tree.vdot(a, a)
   return optax.tree.add_scale(x, scalar, a)
 
 
