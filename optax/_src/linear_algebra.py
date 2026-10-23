@@ -116,6 +116,7 @@ def power_iteration(
       # v0 must be given as we don't know the underlying pytree structure.
       raise ValueError('v0 must be provided when `matrix` is a callable.')
   else:
+    matrix = jnp.asarray(matrix)
     mvp = lambda v: jnp.matmul(matrix, v, precision=precision)
     if v0 is None:
       if key is None:
@@ -124,10 +125,10 @@ def power_iteration(
       v0 = jax.random.uniform(
           key,
           shape=matrix.shape[-1:],  # pyrefly: ignore[missing-attribute]
-          dtype=matrix.dtype,  # pyrefly: ignore[missing-attribute]
+          dtype=matrix.real.dtype,
           minval=-1.0,
           maxval=1.0,
-      )
+      ).astype(matrix.dtype)
 
   v0 = _normalize_tree(v0)
 

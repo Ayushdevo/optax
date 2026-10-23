@@ -45,6 +45,32 @@ class MLP(nn.Module):
 
 class LinearAlgebraTest(parameterized.TestCase):
 
+  @parameterized.product(
+      representation=('array', 'numpy', 'list'),
+      complex_input=(False, True),
+      compiled=(False, True),
+  )
+  def test_power_iteration_default_vector_arraylike(
+      self, representation, complex_input, compiled
+  ):
+    matrix = np.array([[2., 1.], [1., 3.]], dtype=np.float32)
+    if complex_input:
+      matrix = np.array([[2., 1j], [-1j, 3.]], dtype=np.complex64)
+    expected = np.linalg.eigvalsh(matrix)[-1]
+    if representation == 'array':
+      matrix = jnp.asarray(matrix)
+    elif representation == 'list':
+      matrix = matrix.tolist()
+    fn = linear_algebra.power_iteration
+    if compiled:
+      fn = jax.jit(fn)
+    value, vector = fn(matrix)
+    np.testing.assert_allclose(value, expected, atol=1e-5)
+    np.testing.assert_allclose(jnp.linalg.norm(vector), 1., atol=1e-6)
+    np.testing.assert_allclose(
+        jnp.asarray(matrix) @ vector, value * vector, atol=5e-6
+    )
+
   def test_global_norm(self):
     flat_updates = jnp.array([2.0, 4.0, 3.0, 5.0], dtype=jnp.float32)
     nested_updates = {
