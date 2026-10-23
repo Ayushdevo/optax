@@ -33,6 +33,29 @@ def one_hot_argmax(inputs: jnp.ndarray) -> jnp.ndarray:
 
 class FenchelYoungTest(absltest.TestCase):
 
+  def test_fenchel_young_extra_arguments(self):
+    def scaled_logsumexp(scores, temperature, *, bias):
+      return temperature * logsumexp((scores + bias) / temperature)
+
+    loss = _fenchel_young.make_fenchel_young_loss(scaled_logsumexp)
+    scores = jnp.array([[1., 2., -1.], [0., -2., 3.]])
+    targets = jnp.array([[0., 1., 0.], [0., 0., 1.]])
+    bias = jnp.array([0.1, -0.2, 0.3])
+    temperature = jnp.array(2.)
+    expected = temperature * logsumexp(
+        (scores + bias) / temperature, axis=-1
+    ) - jnp.sum(targets * scores, axis=-1)
+    for fn in (loss, jax.jit(loss)):
+      test_utils.assert_trees_all_close(
+          fn(scores, targets, temperature, bias=bias), expected
+      )
+      gradient = jax.grad(
+          lambda x, fn=fn: fn(x, targets, temperature, bias=bias).sum()
+      )(scores)
+      test_utils.assert_trees_all_close(
+          gradient, jax.nn.softmax((scores + bias) / temperature) - targets
+      )
+
   def test_fenchel_young_reg(self):
     # Checks the behavior of the Fenchel-Young loss.
     fy_loss = jax.jit(_fenchel_young.make_fenchel_young_loss(logsumexp))

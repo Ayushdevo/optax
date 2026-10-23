@@ -53,10 +53,13 @@ def make_fenchel_young_loss(max_fun: MaxFun):
   """
 
   vdot_last_dim = jnp.vectorize(jnp.vdot, signature="(n),(n)->()")
-  max_fun_last_dim = jnp.vectorize(max_fun, signature="(n)->()")
 
   def fenchel_young_loss(scores, targets, *args, **kwargs):
-    max_value = max_fun_last_dim(scores, *args, **kwargs)
+    # Only scores are batched; the max function's other arguments are shared.
+    max_fun_last_dim = jnp.vectorize(
+        lambda x: max_fun(x, *args, **kwargs), signature="(n)->()"
+    )
+    max_value = max_fun_last_dim(scores)
     return max_value - vdot_last_dim(targets, scores)
 
   return fenchel_young_loss
