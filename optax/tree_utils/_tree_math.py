@@ -213,8 +213,9 @@ def tree_max(tree: Any) -> jax.typing.ArrayLike:
       return None
     else:
       return jnp.max(array)
-  maxes = jax.tree.map(f, tree)
-  return jax.tree.reduce(jnp.maximum, maxes, initializer=-float('inf'))
+  maxes = jax.tree.leaves(jax.tree.map(f, tree))
+  # An infinite initializer would promote integer leaves to floating point.
+  return functools.reduce(jnp.maximum, maxes) if maxes else -float('inf')
 
 
 def tree_min(tree: Any) -> jax.typing.ArrayLike:
@@ -231,8 +232,8 @@ def tree_min(tree: Any) -> jax.typing.ArrayLike:
       return None
     else:
       return jnp.min(array)
-  mins = jax.tree.map(f, tree)
-  return jax.tree.reduce(jnp.minimum, mins, initializer=float('inf'))
+  mins = jax.tree.leaves(jax.tree.map(f, tree))
+  return functools.reduce(jnp.minimum, mins) if mins else float('inf')
 
 
 def tree_size(tree: Any) -> int:

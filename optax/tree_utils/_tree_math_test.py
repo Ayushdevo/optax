@@ -183,6 +183,25 @@ class TreeUtilsTest(parameterized.TestCase):
     assert expected == got
 
   @parameterized.product(
+      which=(tu.tree_min, tu.tree_max),
+      dtype=(jnp.int32, jnp.uint32),
+      compiled=(False, True),
+  )
+  def test_tree_extrema_preserve_large_integers(self, which, dtype, compiled):
+    values = jnp.array([16777217, 16777219], dtype=dtype)
+    tree = {'a': values[:1], 'b': (jnp.empty((0,), dtype), values[1:])}
+    fn = jax.jit(which) if compiled else which
+    result = fn(tree)
+    expected = 16777217 if which is tu.tree_min else 16777219
+    self.assertEqual(int(result), expected)
+    self.assertEqual(result.dtype, dtype)
+
+  def test_tree_extrema_all_empty(self):
+    for tree in ({}, {'a': jnp.empty((0,), dtype=jnp.int32)}):
+      self.assertEqual(tu.tree_min(tree), float('inf'))
+      self.assertEqual(tu.tree_max(tree), -float('inf'))
+
+  @parameterized.product(
       expected=(0, 10000, -10000, float('inf'), -float('inf')),
       dtype=('int8', 'uint8', 'float32'),
       which=(tu.tree_min, tu.tree_max),
