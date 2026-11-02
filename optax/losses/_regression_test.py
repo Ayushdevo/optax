@@ -98,6 +98,49 @@ class HuberLossTest(parameterized.TestCase):
         self.exp,
     )
 
+  @parameterized.product(
+      dtype=(jnp.float16, jnp.bfloat16, jnp.float32),
+      compiled=(False, True),
+  )
+  def test_representable_loss_avoids_intermediate_square_overflow(
+      self, dtype, compiled
+  ):
+    scale = 256.0 if dtype == jnp.float16 else 2.0**64
+    predictions = jnp.array(
+        [0.875 * scale, -0.875 * scale, 1.25 * scale, -1.25 * scale],
+        dtype=dtype,
+    )
+    delta = jnp.asarray(scale, dtype=dtype)
+    residuals = np.asarray(predictions, dtype=np.float64)
+    threshold = float(delta)
+    # Independent piecewise definition, evaluated at wider host precision.
+    expected = np.where(
+        np.abs(residuals) <= threshold,
+        residuals**2 / 2,
+        threshold * (np.abs(residuals) - threshold / 2),
+    )
+    expected_grad = np.clip(residuals, -threshold, threshold) / 4
+    loss = _regression.huber_loss
+    objective = jax.value_and_grad(
+        lambda x: jnp.sum(_regression.huber_loss(x, delta=delta) / 4)
+    )
+    if compiled:
+      loss = jax.jit(loss)
+      objective = jax.jit(objective)
+    actual = loss(predictions, delta=delta)
+    self.assertEqual(actual.dtype, predictions.dtype)
+    tolerance = 2 * float(jnp.finfo(dtype).eps)
+    np.testing.assert_allclose(
+        np.asarray(actual, dtype=np.float64), expected, rtol=tolerance
+    )
+    value, gradient = objective(predictions)
+    np.testing.assert_allclose(
+        np.asarray(value, dtype=np.float64), expected.mean(), rtol=tolerance
+    )
+    np.testing.assert_allclose(
+        np.asarray(gradient, dtype=np.float64), expected_grad, rtol=tolerance
+    )
+
 
 # TODO(b/188419459): add test for grad and second order grad.
 class LogCoshTest(parameterized.TestCase):
