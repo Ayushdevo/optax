@@ -102,8 +102,10 @@ def clip_by_global_norm(
     # updates = jax.tree.map(lambda t: (t / g_norm) * max_norm, updates)
     trigger = jnp.squeeze(g_norm < max_norm)
     utils.check_rank(trigger, 0)  # A scalar.
-    # Mask before sqrt and division to keep the unused clip branch's VJP finite.
-    g_norm = jnp.sqrt(jnp.where(trigger, 1.0, g_norm_squared))
+    # Mask before sqrt and division so the unused clip branch has a finite VJP.
+    # For a zero norm and zero limit, still use the clip branch to return zeros.
+    safe_denominator = trigger | ((g_norm_squared == 0) & (max_norm == 0))
+    g_norm = jnp.sqrt(jnp.where(safe_denominator, 1.0, g_norm_squared))
 
     def clip_fn(t):
       return jax.lax.select(trigger, t, (t / g_norm.astype(t.dtype)) * max_norm)

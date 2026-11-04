@@ -75,6 +75,20 @@ class ClippingTest(absltest.TestCase):
       updates_step, _ = clipper.update(self.per_step_updates, None)
       test_utils.assert_trees_all_close(updates, updates_step)
 
+  def test_clip_by_global_norm_zero_limit(self):
+    clipper = _clipping.clip_by_global_norm(0.0)
+
+    def clip_vector(x):
+      return clipper.update(x, None)[0]
+
+    for x in (jnp.zeros(2), jnp.array([3.0, 4.0])):
+      for compile_fn in (lambda f: f, jax.jit):
+        with self.subTest(x=x, compiled=compile_fn is jax.jit):
+          np.testing.assert_array_equal(compile_fn(clip_vector)(x), jnp.zeros(2))
+          np.testing.assert_array_equal(
+              compile_fn(jax.jacrev(clip_vector))(x), jnp.zeros((2, 2))
+          )
+
   def test_clip_by_global_norm_zero_updates_jacobian(self):
     clipper = _clipping.clip_by_global_norm(1.0)
 
