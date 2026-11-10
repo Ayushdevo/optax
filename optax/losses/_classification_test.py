@@ -998,6 +998,27 @@ class CTCTest(parameterized.TestCase):
 
 class SigmoidFocalLossTest(parameterized.TestCase):
 
+  @parameterized.product(
+      dtype_and_magnitude=[(jnp.float16, 400.0), (jnp.float32, 100000.0)],
+      sign=[1, -1],
+  )
+  def test_confident_soft_targets_keep_small_focal_weights(
+      self, dtype_and_magnitude, sign
+  ):
+    dtype, magnitude = dtype_and_magnitude
+    upper = jnp.nextafter(jnp.array(1.0, dtype), jnp.array(0.0, dtype))
+    labels = upper if sign > 0 else 1.0 - upper
+    logits = jnp.array(sign * magnitude, dtype)
+    # At this magnitude the smaller target probability is the error
+    # probability to within the working dtype's precision.
+    error_prob = 1.0 - float(upper)
+    expected = magnitude * error_prob**2
+    actual = jax.jit(_classification.sigmoid_focal_loss)(
+        logits, labels, gamma=1.0
+    )
+    rtol = 0.005 if dtype == jnp.float16 else 1e-4
+    np.testing.assert_allclose(actual, expected, rtol=rtol, atol=0)
+
   def setUp(self):
     super().setUp()
     self.ys = np.array([[2.0, 0.1, -2.0], [0.3, -0.1, 1.2]], dtype=np.float32)

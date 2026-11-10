@@ -952,17 +952,15 @@ def sigmoid_focal_loss(
   # Cross-entropy loss
   ce_loss = sigmoid_binary_cross_entropy(logits, labels)
 
-  # Compute log(1 - p_t) by branching on y >= 0.5 to factor out the
-  # larger of {y, 1-y}, decomposing log(sum) into stable primitives.
-  y_prime = jnp.where(labels >= 0.5, labels, 1.0 - labels)
-  # pyrefly: ignore[unsupported-operation]
-  x_prime = jnp.where(labels >= 0.5, -logits, logits)
-
-  log_one_minus_p_t = (
-      jax.nn.log_sigmoid(x_prime)
-      + jnp.log(y_prime)
-      + jax.nn.softplus(-x_prime + jnp.log1p(-y_prime) - jnp.log(y_prime))
-  )
+  # Compute log(1 - p_t) as a mixture of the two label probabilities.
+  # Shift its numerator and denominator by max(logit, 0) before the log
+  # subtraction to keep small soft-target contributions at large logits.
+  positive = logits >= 0
+  pos_logits = jnp.where(positive, logits, 0.0)
+  neg_logits = jnp.where(positive, 0.0, logits)
+  log_one_minus_p_t = jnp.logaddexp(
+      jnp.log1p(-labels) + neg_logits, jnp.log(labels) - pos_logits
+  ) - jax.nn.softplus(jnp.where(positive, -logits, logits))
 
   # Focal weight and final loss
   focal_weight = jnp.exp(gamma * log_one_minus_p_t)
