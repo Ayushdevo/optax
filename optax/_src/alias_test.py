@@ -22,8 +22,10 @@ from absl.testing import parameterized
 import jax
 import jax.numpy as jnp
 from optax._src import alias
+from optax._src import combine
 from optax._src import numerics
 from optax._src import test_utils
+from optax._src import transform
 from optax._src import update
 from optax._src import utils
 from optax.schedules import _inject
@@ -134,6 +136,31 @@ def _setup_rosenbrock(dtype):
 
 
 class AliasTest(parameterized.TestCase):
+
+  def test_noisy_sgd_requires_explicit_key(self):
+    with self.assertRaisesRegex(TypeError, 'key'):
+      alias.noisy_sgd(0.1)
+    with self.assertRaisesRegex(TypeError, 'key'):
+      alias.noisy_sgd(0.1, None)
+    with self.assertRaises(TypeError):
+      alias.noisy_sgd(0.1, 0.01, 0.55)
+
+  @parameterized.named_parameters(
+      ('integer', int),
+      ('typed', jax.random.key),
+  )
+  def test_noisy_sgd_explicit_keys_preserve_updates(self, make_key):
+    gradients = jnp.ones(3)
+    expected = combine.chain(
+        transform.add_noise(0.03, 0.7, jax.random.key(13)),
+        transform.scale_by_learning_rate(0.2),
+    )
+    actual = alias.noisy_sgd(0.2, make_key(13), eta=0.03, gamma=0.7)
+    expected_updates, _ = expected.update(gradients, expected.init(gradients))
+    actual_updates, _ = jax.jit(actual.update)(
+        gradients, actual.init(gradients)
+    )
+    self.assertTrue(jnp.allclose(expected_updates, actual_updates))
 
   @parameterized.product(
       _OPTIMIZERS_UNDER_TEST,

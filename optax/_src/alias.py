@@ -1320,11 +1320,10 @@ def lamb(
 
 def noisy_sgd(
     learning_rate: base.ScalarOrSchedule,
+    key: jax.Array | int,
+    *,
     eta: jax.typing.ArrayLike = 0.01,
     gamma: jax.typing.ArrayLike = 0.55,
-    key: jax.typing.ArrayLike | None = None,  # int
-    *,
-    seed: int | None = None,  # deprecated
 ) -> base.GradientTransformationExtraArgs:
   r"""A variant of SGD with added noise.
 
@@ -1352,11 +1351,10 @@ def noisy_sgd(
   Args:
     learning_rate: A global scaling factor, either fixed or evolving along
       iterations with a scheduler, see :func:`optax.scale_by_learning_rate`.
+    key: A typed JAX random key or an integer seed for noise generation.
     eta: Initial variance for the Gaussian noise added to gradients.
     gamma: A parameter controlling the annealing of noise over time ``t``, the
       variance decays according to ``(1+t)**(-gamma)``.
-    key: random generator key for noise generation.
-    seed: deprecated, use key instead.
 
   Returns:
     The corresponding :class:`optax.GradientTransformationExtraArgs`.
@@ -1386,9 +1384,10 @@ def noisy_sgd(
     Neelakantan et al, `Adding Gradient Noise Improves Learning for Very Deep
     Networks <https://arxiv.org/abs/1511.06807>`_, 2015
   """
+  if key is None:
+    raise TypeError('noisy_sgd requires a random key or integer seed.')
   return combine.chain(
-      # pyrefly: ignore[bad-argument-type]
-      transform.add_noise(eta, gamma, key, seed=seed),
+      transform.add_noise(eta, gamma, key),
       transform.scale_by_learning_rate(learning_rate),
   )
 
