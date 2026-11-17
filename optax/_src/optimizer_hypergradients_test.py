@@ -263,6 +263,11 @@ class OptimizerHypergradientTest(parameterized.TestCase):
         jit,
     )
 
+  @parameterized.parameters(False, True)
+  def test_yogi(self, jit):
+    # Exercise a locally smooth branch of the signed variance update.
+    self._check_rollout(alias.yogi, {'b1': 0.7, 'b2': 0.8, 'eps': 0.001}, jit)
+
 
 if __name__ == '__main__':
   absltest.main()
