@@ -894,11 +894,13 @@ def scale_by_radam(
     else:
       mu_hat = optax.tree.bias_correction(mu, b1, count_inc)
     nu_hat = optax.tree.bias_correction(nu, b2, count_inc)
-    updates = jax.tree.map(
-        # pyrefly: ignore[unsupported-operation]
-        lambda t, f: jnp.where(ro >= threshold, t, f),
-        _radam_update(ro, mu_hat, nu_hat),
-        mu_hat,
+    # The inactive rectification can have a negative square-root argument.
+    # Avoid evaluating it: masking a NaN afterward still poisons reverse AD.
+    updates = jax.lax.cond(
+        ro >= threshold,
+        lambda _: _radam_update(ro, mu_hat, nu_hat),
+        lambda _: mu_hat,
+        operand=None,
     )
     return updates, ScaleByAdamState(count=count_inc, mu=mu, nu=nu)
 
