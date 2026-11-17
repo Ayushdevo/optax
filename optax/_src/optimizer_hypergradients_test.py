@@ -134,6 +134,13 @@ class OptimizerHypergradientTest(parameterized.TestCase):
     # Nesterov momentum must carry sensitivity between steps.
     self._check_rollout(alias.sgd, {'momentum': 0.7, 'nesterov': True}, jit)
 
+  @parameterized.parameters(False, True)
+  def test_adam(self, jit):
+    # Both debiased moments participate in the training derivative.
+    self._check_rollout(
+        alias.adam, {'b1': 0.7, 'b2': 0.8, 'eps_root': 0.0001}, jit
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
