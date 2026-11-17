@@ -254,6 +254,15 @@ class OptimizerHypergradientTest(parameterized.TestCase):
         jit,
     )
 
+  @parameterized.parameters(False, True)
+  def test_rmsprop(self, jit):
+    # Centered variance and momentum both affect the training Jacobian.
+    self._check_rollout(
+        alias.rmsprop,
+        {'decay': 0.8, 'eps': 0.001, 'centered': True, 'momentum': 0.6},
+        jit,
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
