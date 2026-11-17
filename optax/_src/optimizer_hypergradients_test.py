@@ -204,6 +204,15 @@ class OptimizerHypergradientTest(parameterized.TestCase):
         jit,
     )
 
+  @parameterized.parameters(False, True)
+  def test_lars(self, jit):
+    # Differentiate through trust scaling, decay and momentum together.
+    self._check_rollout(
+        alias.lars,
+        {'momentum': 0.6, 'trust_coefficient': 0.2, 'weight_decay': 0.1},
+        jit,
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
