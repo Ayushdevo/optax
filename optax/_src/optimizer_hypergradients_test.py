@@ -141,6 +141,15 @@ class OptimizerHypergradientTest(parameterized.TestCase):
         alias.adam, {'b1': 0.7, 'b2': 0.8, 'eps_root': 0.0001}, jit
     )
 
+  @parameterized.parameters(False, True)
+  def test_adamw(self, jit):
+    # Decoupled decay also depends on the current parameters.
+    self._check_rollout(
+        alias.adamw,
+        {'b1': 0.7, 'b2': 0.8, 'eps_root': 0.0001, 'weight_decay': 0.2},
+        jit,
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
