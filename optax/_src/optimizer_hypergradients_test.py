@@ -129,6 +129,11 @@ class OptimizerHypergradientTest(parameterized.TestCase):
     )
     np.testing.assert_allclose(actual, expected, rtol=3e-3, atol=1e-4)
 
+  @parameterized.parameters(False, True)
+  def test_sgd(self, jit):
+    # Nesterov momentum must carry sensitivity between steps.
+    self._check_rollout(alias.sgd, {'momentum': 0.7, 'nesterov': True}, jit)
+
 
 if __name__ == '__main__':
   absltest.main()
