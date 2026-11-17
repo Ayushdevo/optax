@@ -174,6 +174,15 @@ class OptimizerHypergradientTest(parameterized.TestCase):
     # Exercise a locally smooth branch of the infinity-norm history.
     self._check_rollout(alias.adamax, {'b1': 0.7, 'b2': 0.8, 'eps': 0.001}, jit)
 
+  @parameterized.parameters(False, True)
+  def test_adamaxw(self, jit):
+    # Infinity-norm history and decoupled decay both affect the rollout.
+    self._check_rollout(
+        alias.adamaxw,
+        {'b1': 0.7, 'b2': 0.8, 'eps': 0.001, 'weight_decay': 0.2},
+        jit,
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
