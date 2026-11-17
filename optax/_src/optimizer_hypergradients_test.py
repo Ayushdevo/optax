@@ -220,6 +220,13 @@ class OptimizerHypergradientTest(parameterized.TestCase):
         alias.lion, {'b1': 0.7, 'b2': 0.8, 'weight_decay': 0.2}, jit
     )
 
+  @parameterized.parameters(False, True)
+  def test_nadam(self, jit):
+    # The Nesterov correction must preserve moment sensitivities.
+    self._check_rollout(
+        alias.nadam, {'b1': 0.7, 'b2': 0.8, 'eps_root': 0.0001}, jit
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
