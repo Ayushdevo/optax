@@ -190,6 +190,11 @@ class OptimizerHypergradientTest(parameterized.TestCase):
         alias.amsgrad, {'b1': 0.7, 'b2': 0.8, 'eps_root': 0.0001}, jit
     )
 
+  @parameterized.parameters(False, True)
+  def test_fromage(self, jit):
+    # The norm correction depends directly on the learning rate.
+    self._check_rollout(alias.fromage, {'min_norm': 0.001}, jit)
+
 
 if __name__ == '__main__':
   absltest.main()
