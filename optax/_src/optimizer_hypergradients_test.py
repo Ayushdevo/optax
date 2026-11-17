@@ -195,6 +195,15 @@ class OptimizerHypergradientTest(parameterized.TestCase):
     # The norm correction depends directly on the learning rate.
     self._check_rollout(alias.fromage, {'min_norm': 0.001}, jit)
 
+  @parameterized.parameters(False, True)
+  def test_lamb(self, jit):
+    # Trust ratios couple the coordinates within each parameter leaf.
+    self._check_rollout(
+        alias.lamb,
+        {'b1': 0.7, 'b2': 0.8, 'eps_root': 0.0001, 'weight_decay': 0.1},
+        jit,
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
