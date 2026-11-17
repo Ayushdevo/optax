@@ -245,6 +245,15 @@ class OptimizerHypergradientTest(parameterized.TestCase):
         jit,
     )
 
+  @parameterized.parameters(False, True)
+  def test_optimistic_adam_v2(self, jit):
+    # The previous update participates in the optimistic correction.
+    self._check_rollout(
+        alias.optimistic_adam_v2,
+        {'b1': 0.7, 'b2': 0.8, 'eps_root': 0.0001, 'alpha': 0.8, 'beta': 0.3},
+        jit,
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
