@@ -162,6 +162,13 @@ class OptimizerHypergradientTest(parameterized.TestCase):
     # Both gradient and update accumulators carry sensitivity.
     self._check_rollout(alias.adadelta, {'rho': 0.8, 'eps': 0.001}, jit)
 
+  @parameterized.parameters(False, True)
+  def test_adagrad(self, jit):
+    # The cumulative squared-gradient history affects later steps.
+    self._check_rollout(
+        alias.adagrad, {'initial_accumulator_value': 0.2, 'eps': 0.001}, jit
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
