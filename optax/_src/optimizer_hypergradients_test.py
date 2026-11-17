@@ -150,6 +150,13 @@ class OptimizerHypergradientTest(parameterized.TestCase):
         jit,
     )
 
+  @parameterized.parameters(False, True)
+  def test_adabelief(self, jit):
+    # The residual-based variance must remain differentiable.
+    self._check_rollout(
+        alias.adabelief, {'b1': 0.7, 'b2': 0.8, 'eps_root': 0.0001}, jit
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
