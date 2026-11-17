@@ -213,6 +213,13 @@ class OptimizerHypergradientTest(parameterized.TestCase):
         jit,
     )
 
+  @parameterized.parameters(False, True)
+  def test_lion(self, jit):
+    # Away from sign changes, decay and rate still have derivatives.
+    self._check_rollout(
+        alias.lion, {'b1': 0.7, 'b2': 0.8, 'weight_decay': 0.2}, jit
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
