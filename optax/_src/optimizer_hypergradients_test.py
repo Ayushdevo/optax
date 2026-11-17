@@ -169,6 +169,11 @@ class OptimizerHypergradientTest(parameterized.TestCase):
         alias.adagrad, {'initial_accumulator_value': 0.2, 'eps': 0.001}, jit
     )
 
+  @parameterized.parameters(False, True)
+  def test_adamax(self, jit):
+    # Exercise a locally smooth branch of the infinity-norm history.
+    self._check_rollout(alias.adamax, {'b1': 0.7, 'b2': 0.8, 'eps': 0.001}, jit)
+
 
 if __name__ == '__main__':
   absltest.main()
