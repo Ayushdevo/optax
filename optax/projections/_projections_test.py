@@ -204,6 +204,28 @@ class ProjectionsTest(parameterized.TestCase):
     p = proj.projection_l2_sphere(x, scale)
     np.testing.assert_almost_equal(optax.tree.norm(p), scale, decimal=4)
 
+  @parameterized.product(zero_input=[False, True], jit=[False, True])
+  def test_projection_l2_sphere_zero_radius(self, zero_input, jit):
+    x = {'w': jnp.array([3.0, -4.0]), 'b': jnp.array(2.0)}
+    if zero_input:
+      x = jax.tree.map(jnp.zeros_like, x)
+    project = proj.projection_l2_sphere
+    if jit:
+      project = jax.jit(project)
+    test_utils.assert_trees_all_equal(
+        project(x, jnp.array(0.0)), jax.tree.map(jnp.zeros_like, x)
+    )
+
+  @parameterized.parameters(False, True)
+  def test_projection_l2_sphere_zero_radius_input_jacobian(self, jit):
+    def project(x):
+      return proj.projection_l2_sphere(x, scale=jnp.array(0.0))
+    if jit:
+      project = jax.jit(project)
+    for x in (jnp.zeros(2), jnp.array([3.0, -4.0])):
+      np.testing.assert_array_equal(jax.jacfwd(project)(x), jnp.zeros((2, 2)))
+      np.testing.assert_array_equal(jax.jacrev(project)(x), jnp.zeros((2, 2)))
+
   @parameterized.product(
       data_key=['array_1d', 'array_2d', 'tree'],
       norm=['l1', 'l2', 'linf'],
