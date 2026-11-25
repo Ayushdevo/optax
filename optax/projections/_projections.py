@@ -241,8 +241,14 @@ def projection_l2_sphere(tree: Any, scale: jax.typing.ArrayLike = 1) -> Any:
 
   .. versionadded:: 0.2.4
   """
-  factor = scale / optax.tree.norm(tree)
-  return optax.tree.scale(factor, tree)
+  # At zero radius the sphere contains only the origin. A separate branch
+  # avoids 0 / 0 and gives zero input derivatives at that point.
+  return jax.lax.cond(
+      jnp.asarray(scale) == 0,
+      lambda x: jax.tree.map(jnp.zeros_like, x),
+      lambda x: optax.tree.scale(scale / optax.tree.norm(x), x),
+      tree,
+  )
 
 
 def projection_l2_ball(tree: Any, scale: jax.typing.ArrayLike = 1) -> Any:
